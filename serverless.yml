@@ -26,9 +26,10 @@ plugins:
 package: # Excluye archivos innecesarios en aws y mejora el peso de los archivos
   individually: true
   patterns:
-    - "!.dynamodb" # No incluyas el archivo .dynamoDB
-    - "!.node_modules" # No incluyas el archivo .node_modules
-    - "!.serverless" # No incluyas el archivo .node_modules
+    - "!*/**" # Excluye todos los archivos
+    # - "!.dynamodb" # No incluyas el archivo .dynamoDB
+    # - "!.node_modules" # No incluyas el archivo .node_modules
+    # - "!.serverless" # No incluyas el archivo .node_modules
 # "!.dynamodb" y "!.node_modules", ayudan a bajar el tamaño de la app al subir a la nube
 custom:
   dynamodb:
@@ -58,26 +59,37 @@ resources:
 functions:
   get-users:
     handler: getusers/handler.getUsers
+    package:
+      patterns:
+        - "getusers/handler.js"
     events:
       - http:
           path: users/{id}
           method: GET
   create-user:
     handler: createuser/handler.createUsers
+    package:
+      patterns:
+        - "createuser/handler.js"
     events:
       - http:
           path: users
           method: POST
   update-user:
     handler: updateuser/handler.updateUser
+    package:
+      patterns:
+        - "updateuser/handler.js"
     events:
       - http:
           path: users/{id}
           method: PATCH
   delete-user:
     handler: deleteuser/handler.deleteUser
+    package:
+      patterns:
+        - "deleteuser/handler.js"
     events:
       - http:
           path: users/{id}
           method: DELETE
-
