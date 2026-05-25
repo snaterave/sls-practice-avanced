@@ -1,0 +1,9 @@
+node_modules
+.serverless
+.idea
+.idea/*
+./.idea
+.build/*
+.build
+.dynamodb
+.dynamodb/*

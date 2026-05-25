@@ -1,0 +1,83 @@
+service: crud-serverless-user
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  iam: # Pernisos generales, en este caso a todas las lambdas descritas aqui.
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - "dynamodb:*"
+            # - dynamodb:Query
+            # - dynamodb:GetItem
+            # - dynamodb:Scan
+          Resource: # restringe la tabla que será accedida
+            - arn:aws:dynamodb:us-east-1:630434208542:table/UserStable
+            # se obtiene desde aws: DynamoDB > Tables > UserStable (Buscar: Amazon Resource Name (ARN))
+  # environment:
+  #   IS_OFFLINE: "false"
+
+plugins:
+  - serverless-dynamodb
+  - serverless-offline
+
+package: # Excluye archivos innecesarios en aws y mejora el peso de los archivos
+  individually: true
+  patterns:
+    - "!.dynamodb" # No incluyas el archivo .dynamoDB
+    - "!.node_modules" # No incluyas el archivo .node_modules
+    - "!.serverless" # No incluyas el archivo .node_modules
+# "!.dynamodb" y "!.node_modules", ayudan a bajar el tamaño de la app al subir a la nube
+custom:
+  dynamodb:
+    stages: 
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      # heapInitial: 200m
+      # heapMax: 1g
+
+resources:
+  Resources:
+    UserStable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: UserStable
+        AttributeDefinitions:
+          - AttributeName: pk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: pk
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+functions:
+  get-users:
+    handler: getusers/handler.getUsers
+    events:
+      - http:
+          path: users/{id}
+          method: GET
+  create-user:
+    handler: createuser/handler.createUsers
+    events:
+      - http:
+          path: users
+          method: POST
+  update-user:
+    handler: updateuser/handler.updateUser
+    events:
+      - http:
+          path: users/{id}
+          method: PATCH
+  delete-user:
+    handler: deleteuser/handler.deleteUser
+    events:
+      - http:
+          path: users/{id}
+          method: DELETE
+
