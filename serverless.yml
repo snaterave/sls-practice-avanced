@@ -16,17 +16,30 @@ provider:
           Resource: # restringe la tabla que será accedida
             - arn:aws:dynamodb:us-east-1:630434208542:table/UserStable
             # se obtiene desde aws: DynamoDB > Tables > UserStable (Buscar: Amazon Resource Name (ARN))
-  # environment:
-  #   IS_OFFLINE: "false"
+        - Effect: Allow
+          Action:
+            - "s3:*"
+          Resource: # /* acceso a todo el bucket
+            - arn:aws:s3:::bucket-serverless-course-test-${sls:stage}-${aws:accountId}/*
+  environment:
+    BUCKET: bucket-serverless-course-test-${sls:stage}-${aws:accountId}
+    # BUCKET: bucket-serverless-course-test-123213
+  layers:
+    - { Ref: BaseLambdaLayer }
 
-plugins:
-  - serverless-dynamodb
-  - serverless-offline
+
+# plugins:
+#   - serverless-dynamodb
+#   - serverless-offline
 
 package: # Excluye archivos innecesarios en aws y mejora el peso de los archivos
   individually: true
   patterns:
     - "!*/**" # Excluye todos los archivos
+    - "!*.zip"
+    - "!package.json"
+    - "!package-lock.json"
+    # - "!node_modules/**"
     # - "!.dynamodb" # No incluyas el archivo .dynamoDB
     # - "!.node_modules" # No incluyas el archivo .node_modules
     # - "!.serverless" # No incluyas el archivo .node_modules
@@ -39,9 +52,134 @@ custom:
       port: 8000
       inMemory: true
       migrate: true
-      # heapInitial: 200m
-      # heapMax: 1g
 
+functions:
+  get-users:
+    handler: getusers/handler.getUsers
+    # layers:
+    #   - { Ref: BaseLambdaLayer }
+    package:
+      patterns:
+        - "getusers/handler.js"
+        # - "!*.zip"
+        # - "package.json"
+        # - "node_modules/aws-sdk/**"
+    events:
+      - http:
+          path: users/{id}
+          method: GET
+          request:
+            parameters:
+              paths:
+                id: true
+  create-user:
+    handler: createuser/handler.createUsers
+    # layers:
+    #   - { Ref: BaseLambdaLayer }
+    package:
+      patterns:
+        - "createuser/handler.js"
+        # - "node_modules/**"
+    events:
+      - http:
+          path: users
+          method: POST
+          request:
+            schemas:
+              application/json: ${file(schemas/user-schema.json)}
+  update-user:
+    handler: updateuser/handler.updateUser
+    # layers:
+    #   - { Ref: BaseLambdaLayer }
+    package:
+      patterns:
+        - "updateuser/handler.js"
+        # - "node_modules/**"
+    events:
+      - http:
+          path: users/{id}
+          method: PATCH
+          request:
+            parameters:
+              paths:
+                id: true
+            schemas:
+              application/json: ${file(schemas/user-schema.json)}
+  delete-user:
+    handler: deleteuser/handler.deleteUser
+    # layers:
+    #   - { Ref: BaseLambdaLayer }
+    package:
+      patterns:
+        - "deleteuser/handler.js"
+        # - "node_modules/**"
+    events:
+      - http:
+          path: users/{id}
+          method: DELETE
+          request:
+            parameters:
+              paths:
+                id: true
+  signedURL:
+    handler: signedurl/handler.signedS3URL
+    # layers:
+    #   - { Ref: BaseLambdaLayer }
+    package:
+      patterns:
+        - "signedurl/handler.js"
+        # - "node_modules/**"
+    events:
+      - http:
+          path: signedurl
+          method: GET
+          request:
+            parameters:
+              querystrings:
+                filename: true
+  thumbGenerator:
+    handler: thumbnail/handler.thumbnailGenerator
+    layers:
+      - { Ref: SharpLambdaLayer }
+      - { Ref: BaseLambdaLayer }
+      # Asi se pueden llamar varias lambda layers. Maximo 5 layers
+      # - arn:aws:lambda:us-east-1:630434208542:layer:prd-dependencies:1
+      # - arn:aws:lambda:us-east-1:630434208542:layer:prd-dependencies:1
+    package:
+      patterns:
+        - "thumbnail/handler.js"
+        # - "!*.zip"
+        # - "node_modules/**"
+    events:
+      - s3:
+          bucket: bucket-serverless-course-test-${sls:stage}-${aws:accountId}
+          event: s3:ObjectCreated:*
+          existing: true
+          rules:
+           - prefix: upload/
+layers:
+  base:
+    name: "aws-sdk-dependencies"
+    description: "Dependencias de sharp"
+    compatibleRuntimes:
+    - "nodejs18.x"
+    compatibleArchitectures:
+      - x86_64
+    package:
+      artifact: layers/aws-sdk-layer.zip
+    # retain: true
+
+  sharp:
+    name: "sharp-dependencies"
+    description: "Dependencias de nodejs"
+    compatibleRuntimes:
+    - "nodejs18.x"
+    compatibleArchitectures:
+      - x86_64
+    package:
+      artifact: layers/sharp-layer.zip
+    # retain: true
+# Cloud Formation - crea recursos
 resources:
   Resources:
     UserStable:
@@ -55,41 +193,30 @@ resources:
           - AttributeName: pk
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+    S3Bucket:
+      Type: 'AWS::S3::Bucket'
+      Properties:
+        # AccessControl: PublicRead
+        BucketName: bucket-serverless-course-test-${sls:stage}-${aws:accountId}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          IgnorePublicAcls: false
+          BlockPublicPolicy: false
+          RestrictPublicBuckets: false
 
-functions:
-  get-users:
-    handler: getusers/handler.getUsers
-    package:
-      patterns:
-        - "getusers/handler.js"
-    events:
-      - http:
-          path: users/{id}
-          method: GET
-  create-user:
-    handler: createuser/handler.createUsers
-    package:
-      patterns:
-        - "createuser/handler.js"
-    events:
-      - http:
-          path: users
-          method: POST
-  update-user:
-    handler: updateuser/handler.updateUser
-    package:
-      patterns:
-        - "updateuser/handler.js"
-    events:
-      - http:
-          path: users/{id}
-          method: PATCH
-  delete-user:
-    handler: deleteuser/handler.deleteUser
-    package:
-      patterns:
-        - "deleteuser/handler.js"
-    events:
-      - http:
-          path: users/{id}
-          method: DELETE
+    SampleBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref S3Bucket
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Action:
+                - 's3:GetObject'
+              Effect: Allow
+              Resource: !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+                  - /*
+              Principal: '*'

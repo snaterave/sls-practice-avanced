@@ -3,15 +3,20 @@
   "version": "1.0.0",
   "description": "",
   "main": "handler.js",
+  "engines": {
+    "node": ">18.13.0"
+  },
   "scripts": {
     "phoenix": "rm -rf node_modules package-lock.json && npm install",
     "dev": "IS_OFFLINE=true sls offline start",
-    "test": "echo \"Error: no test specified\" "
+    "test": "echo \"Error: no test specified\" ",
+    "prod": "rm -rf node_modules && npm install --production sharp --arch=x64 --platform=linux"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.1693.0"
+    "aws-sdk": "^2.1693.0",
+    "sharp": "^0.31.3"
   },
   "devDependencies": {
     "serverless": "^3.40.0",
