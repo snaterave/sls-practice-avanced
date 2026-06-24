@@ -3,6 +3,9 @@ service: crud-serverless-user
 provider:
   name: aws
   runtime: nodejs18.x
+  apiGateway:
+    apiKeys:
+      - crud-serverless-user-apikey
   region: us-east-1
   iam: # Pernisos generales, en este caso a todas las lambdas descritas aqui.
     role:
@@ -66,6 +69,7 @@ functions:
         # - "node_modules/aws-sdk/**"
     events:
       - http:
+          private: true
           path: users/{id}
           method: GET
           request:
