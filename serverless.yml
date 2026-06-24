@@ -26,7 +26,7 @@ provider:
             - arn:aws:s3:::bucket-serverless-course-test-${sls:stage}-${aws:accountId}/*
   environment:
     BUCKET: bucket-serverless-course-test-${sls:stage}-${aws:accountId}
-    # BUCKET: bucket-serverless-course-test-123213
+
   layers:
     - { Ref: BaseLambdaLayer }
 
