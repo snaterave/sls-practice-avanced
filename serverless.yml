@@ -26,7 +26,7 @@ provider:
             - arn:aws:s3:::bucket-serverless-course-test-${sls:stage}-${aws:accountId}/*
   environment:
     BUCKET: bucket-serverless-course-test-${sls:stage}-${aws:accountId}
-
+    SECRET_TEST: ${ssm:/SECRET_TEST}
   layers:
     - { Ref: BaseLambdaLayer }
 
@@ -57,6 +57,11 @@ custom:
       migrate: true
 
 functions:
+  custom-authorizer:
+    handler: authorizer/handler.authorize
+    package:
+      patterns:
+        - "authorizer/handler.js"
   get-users:
     handler: getusers/handler.getUsers
     # layers:
@@ -69,7 +74,7 @@ functions:
         # - "node_modules/aws-sdk/**"
     events:
       - http:
-          private: true
+          private: true # habilita el apikey, se debe pasar en el header
           path: users/{id}
           method: GET
           request:
@@ -87,6 +92,9 @@ functions:
     events:
       - http:
           path: users
+          authorizer: 
+            name: custom-authorizer #agrega el custo auth
+            resultTtlInSeconds: 15 # cache - reduce llamadas repetitivas
           method: POST
           request:
             schemas:
