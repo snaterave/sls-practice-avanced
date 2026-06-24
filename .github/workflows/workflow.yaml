@@ -44,5 +44,3 @@ jobs:
 
       - name: Deploy with Serverless
         run: npx serverless deploy --stage $STAGE --region $AWS_REGION --verbose
-      - name: Deploy with Serverless
-        run: npx serverless deploy --stage $STAGE --region $AWS_REGION --verbose
