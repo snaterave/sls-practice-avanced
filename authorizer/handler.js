@@ -2,7 +2,8 @@ const authorize = async (event, context) => {
     let date = new Date();
     let minutes = date.getMinutes()
     let hour = date.getHours()
-    if (event.authorizationToken === `Bearer ${process.env.SECRET_TEST}-${hour}-${minutes}`) {
+    // if (event.authorizationToken === `Bearer ${process.env.SECRET_TEST}-${hour}-${minutes}`) {
+    if (event.authorizationToken === `Bearer ${process.env.SECRET_TEST}`) {
         return {
             principalId: 'anonymous',
             policyDocument: {
